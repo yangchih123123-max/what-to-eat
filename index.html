@@ -30,10 +30,11 @@
             <h1 class="text-xl font-bold bg-gradient-to-r from-pink-400 to-amber-300 bg-clip-text text-transparent">🍽️ 今天三餐吃什麼？</h1>
             <p class="text-xs text-slate-400">一鍵抽籤，隨機拯救選擇困難</p>
         </div>
-        <div id="gps-status" class="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full border border-slate-700 flex items-center gap-1">
+        <!-- 點擊右上角即可手動觸發定位 -->
+        <button onclick="initLocation()" id="gps-status" class="text-xs bg-slate-800 text-slate-300 px-3 py-1.5 rounded-full border border-slate-700 flex items-center gap-1.5 active:scale-95 transition cursor-pointer" title="點擊重新定位">
             <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse" id="gps-dot"></span>
-            <span id="gps-text">定位中...</span>
-        </div>
+            <span id="gps-text">點擊定位</span>
+        </button>
     </header>
 
     <!-- 主要內容區 -->
@@ -59,10 +60,10 @@
             <h2 id="result-title" class="text-2xl font-bold text-white mt-1 mb-3">--</h2>
             
             <div class="flex gap-2 justify-center">
-                <button onclick="openGoogleMaps()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 px-4 rounded-xl text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30">
+                <button onclick="openGoogleMaps()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 px-4 rounded-xl text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 cursor-pointer">
                     🗺️ 去地圖找附近這家店
                 </button>
-                <button onclick="spinWheel()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-4 rounded-xl text-sm transition">
+                <button onclick="spinWheel()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-4 rounded-xl text-sm transition cursor-pointer">
                     再抽一次
                 </button>
             </div>
@@ -72,7 +73,7 @@
         <div class="w-full glass-card rounded-2xl p-4">
             <div class="flex justify-between items-center mb-3">
                 <span class="text-sm font-semibold text-slate-300">目前候選清單 (<span id="item-count">0</span>)</span>
-                <button onclick="resetToDefault()" class="text-xs text-slate-400 hover:text-pink-400 transition">恢復預設台灣美食</button>
+                <button onclick="resetToDefault()" class="text-xs text-slate-400 hover:text-pink-400 transition cursor-pointer">恢復預設台灣美食</button>
             </div>
             <div id="tags-container" class="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pr-1">
                 <!-- 動態塞入項目標籤 -->
@@ -81,7 +82,7 @@
             <!-- 新增項目輸入框 -->
             <div class="mt-3 flex gap-2">
                 <input type="text" id="new-item-input" placeholder="想加點什麼？ (例如: 鹹酥雞)" class="flex-1 bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-500">
-                <button onclick="addItem()" class="bg-pink-600 hover:bg-pink-500 text-white px-4 py-2 rounded-xl text-sm font-medium transition">新增</button>
+                <button onclick="addItem()" class="bg-pink-600 hover:bg-pink-500 text-white px-4 py-2 rounded-xl text-sm font-medium transition cursor-pointer">新增</button>
             </div>
         </div>
 
@@ -119,28 +120,22 @@
                 return;
             }
 
-            const timeoutId = setTimeout(() => {
-                if (userLat === null) {
-                    gpsDot.className = "w-2 h-2 rounded-full bg-slate-500";
-                    gpsText.innerText = "使用預設區域";
-                }
-            }, 5000);
+            gpsDot.className = "w-2 h-2 rounded-full bg-amber-400 animate-pulse";
+            gpsText.innerText = "定位中...";
 
             navigator.geolocation.getCurrentPosition(
                 (position) => {
-                    clearTimeout(timeoutId);
                     userLat = position.coords.latitude;
                     userLng = position.coords.longitude;
                     gpsDot.className = "w-2 h-2 rounded-full bg-emerald-400";
                     gpsText.innerText = "已定位";
                 },
                 (error) => {
-                    clearTimeout(timeoutId);
                     console.warn("定位失敗:", error.message);
                     gpsDot.className = "w-2 h-2 rounded-full bg-slate-500";
                     gpsText.innerText = "使用預設區域";
                 },
-                { timeout: 5000, maximumAge: 60000, enableHighAccuracy: false }
+                { timeout: 8000, maximumAge: 60000, enableHighAccuracy: false }
             );
         }
 
@@ -186,7 +181,7 @@
                 tag.className = "bg-slate-800 border border-slate-700 text-slate-300 text-xs px-2.5 py-1.5 rounded-lg flex items-center gap-1.5";
                 tag.innerHTML = `
                     <span>${item}</span>
-                    <button onclick="removeItem(${index})" class="text-slate-500 hover:text-rose-400 font-bold ml-1">×</button>
+                    <button onclick="removeItem(${index})" class="text-slate-500 hover:text-rose-400 font-bold ml-1 cursor-pointer">×</button>
                 `;
                 container.appendChild(tag);
             });
@@ -200,3 +195,76 @@
             const val = input.value.trim();
             if (val && !items.includes(val)) {
                 items.push(val);
+                input.value = '';
+                updateUI();
+            }
+        }
+
+        function removeItem(index) {
+            if (items.length <= 2) {
+                alert("至少要保留 2 個選項才能抽籤喔！");
+                return;
+            }
+            items.splice(index, 1);
+            updateUI();
+        }
+
+        function resetToDefault() {
+            items = [...defaultItems];
+            updateUI();
+        }
+
+        let currentAngle = 0;
+        function spinWheel() {
+            if (isSpinning || items.length === 0) return;
+            isSpinning = true;
+
+            const resultCard = document.getElementById('result-card');
+            resultCard.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => resultCard.classList.add('hidden'), 300);
+
+            const sliceAngleDeg = 360 / items.length;
+            const winningIndex = Math.floor(Math.random() * items.length);
+            
+            const extraSpins = 360 * 5; 
+            const targetDegreeFromTop = winningIndex * sliceAngleDeg + sliceAngleDeg / 2;
+            const targetAngle = currentAngle + extraSpins + (360 - (targetDegreeFromTop + currentAngle) % 360);
+            
+            currentAngle = targetAngle;
+            canvas.style.transform = `rotate(${currentAngle}deg)`;
+
+            setTimeout(() => {
+                isSpinning = false;
+                currentSelected = items[winningIndex];
+                
+                document.getElementById('result-title').innerText = currentSelected;
+                resultCard.classList.remove('hidden');
+                setTimeout(() => resultCard.classList.remove('scale-95', 'opacity-0'), 50);
+
+                confetti({
+                    particleCount: 80,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }, 5000);
+        }
+
+        function openGoogleMaps() {
+            if (!currentSelected) return;
+
+            let mapsUrl = "";
+            if (userLat !== null && userLng !== null) {
+                mapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(currentSelected)}/@${userLat},${userLng},15z`;
+            } else {
+                mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent('附近 ' + currentSelected)}`;
+            }
+
+            window.open(mapsUrl, '_blank');
+        }
+
+        // 頁面載入時嘗試背景定位
+        initLocation();
+        updateUI();
+    </script>
+</body>
+</html>
